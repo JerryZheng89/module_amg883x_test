@@ -1,0 +1,5 @@
+out/
+compile_commands.json
+app_amg883x
+*.o
+*.ko

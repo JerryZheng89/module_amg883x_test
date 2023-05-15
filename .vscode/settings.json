@@ -1,0 +1,10 @@
+{
+    "files.associations": {
+        "stdint.h": "c",
+        "i2c-dev.h": "c",
+        "i2c.h": "c",
+        "smbus.h": "c",
+        "ioctl-types.h": "c",
+        "time.h": "c"
+    }
+}
