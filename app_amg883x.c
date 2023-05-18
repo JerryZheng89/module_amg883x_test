@@ -41,6 +41,7 @@ int main(int argc, char **argv)
 {
     int ret;
     int fd;
+    int temp;
     struct amg883x_read_data *rdBuf;
     struct amg883x_write_data *wrBuf;
 
@@ -89,6 +90,12 @@ int main(int argc, char **argv)
     ret = write(fd, wrBuf, sizeof(struct amg883x_write_data));
     if (ret < 0)
         printf("Error: write return error %d", ret);
+
+    ret = ioctl(fd, AMG_CMD_PW_ON);
+    ret = ioctl(fd, AMG_CMD_PW_OFF);
+    ret = ioctl(fd, AMG_CMD_RD_TEMP, &temp);
+    if (ret == 0)
+        printf("ioctl get temperature %0.3f°C", temp*0.0625f);
 
     free(rdBuf);
     free(wrBuf);
