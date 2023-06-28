@@ -4,6 +4,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
+#include <sys/select.h> /* for select */
 #include <fcntl.h> /* for open */
 #include <unistd.h> /* for close */
 #include <string.h>
@@ -42,6 +43,8 @@ int main(int argc, char **argv)
     int ret;
     int fd;
     int temp;
+    fd_set readfds;
+    int irqCount = 0;
     struct amg883x_read_data *rdBuf;
     struct amg883x_write_data *wrBuf;
 
@@ -53,17 +56,34 @@ int main(int argc, char **argv)
         printf("amg8833 open failed\n");
     }
 
-    read(fd, rdBuf, sizeof(struct amg883x_read_data));
-    printf("amg883x i2c temperature:%04x\n", rdBuf->thermistor);
-    printf("amg883x int union:%d, %d, %d\n", rdBuf->int_control, rdBuf->int_control_reg.intEN, 
-                                           rdBuf->int_control_reg.intMode);
+    while (1) {
+        FD_ZERO(&readfds);
+        FD_SET(fd, &readfds);
+        ret = select(fd + 1, &readfds, NULL, NULL, NULL);
+        if (ret == -1) {
+            fprintf(stderr, "select: an error ocurred");
+            break;
+        }
 
-    printf("amg883x status union:%d, %d, %d, %d\n", rdBuf->status, rdBuf->status_reg.intf, 
-                                              rdBuf->status_reg.ir_over, 
-                                              rdBuf->status_reg.temper_over);
+        if (FD_ISSET(fd, &readfds)) {
+            read(fd, rdBuf, sizeof(struct amg883x_read_data));
+            printf("amg883x i2c temperature:%04x\n", rdBuf->thermistor);
+            printf("amg883x int union:%d, %d, %d\n", rdBuf->int_control, rdBuf->int_control_reg.intEN, 
+                                                   rdBuf->int_control_reg.intMode);
 
-    data_dump_byte("int flag table:", rdBuf->int_pixel_table, 8);
-    data_dump_word("pixel table:", rdBuf->pixel_value_table, 64);
+            printf("amg883x status union:%d, %d, %d, %d\n", rdBuf->status, rdBuf->status_reg.intf, 
+                                                      rdBuf->status_reg.ir_over, 
+                                                      rdBuf->status_reg.temper_over);
+
+            data_dump_byte("int flag table:", rdBuf->int_pixel_table, 8);
+            data_dump_word("pixel table:", rdBuf->pixel_value_table, 64);
+
+            if (irqCount++ > 10) break;
+        } else {
+            fprintf(stderr, "amg883x not readable\n");
+            sleep(1);
+        }
+    }
 
 #if 0
     uint16_t tempU16;
